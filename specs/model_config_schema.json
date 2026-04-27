@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/specs/model_config_schema.json",
+  "title": "Engine Model Config",
+  "description": "Internal engine model configuration schema. This schema is intentionally decoupled from Hugging Face config field names and is designed to remain stable across model-family upgrades.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "model_family",
+    "model_name",
+    "architecture",
+    "vocab_size",
+    "max_position_embeddings",
+    "hidden_size",
+    "num_hidden_layers",
+    "num_attention_heads",
+    "num_key_value_heads",
+    "intermediate_size",
+    "activation",
+    "norm_type",
+    "norm_epsilon",
+    "positional_encoding",
+    "mlp_type",
+    "attention_type",
+    "attention_bias",
+    "mlp_bias",
+    "tie_word_embeddings",
+    "bos_token_id",
+    "eos_token_id",
+    "dtype"
+  ],
+  "properties": {
+    "model_family": {
+      "type": "string",
+      "description": "Logical model family name, such as gpt2, llama, gemma, mistral, or qwen2_5."
+    },
+    "model_name": {
+      "type": "string",
+      "description": "Concrete model identifier used by the repository for the converted artifact."
+    },
+    "architecture": {
+      "type": "string",
+      "enum": ["decoder_only"],
+      "description": "Phase 0 supports decoder-only models only."
+    },
+    "vocab_size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "max_position_embeddings": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "hidden_size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "num_hidden_layers": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "num_attention_heads": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "num_key_value_heads": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "For GPT-2 this equals num_attention_heads. The field exists now so MQA and GQA models can reuse the same config contract later."
+    },
+    "intermediate_size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "activation": {
+      "type": "string",
+      "enum": ["gelu", "gelu_new", "silu", "relu", "custom"],
+      "description": "Low-level activation function. Use mlp_type to describe broader FFN structure."
+    },
+    "norm_type": {
+      "type": "string",
+      "enum": ["layer_norm", "rms_norm"]
+    },
+    "norm_epsilon": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "positional_encoding": {
+      "type": "string",
+      "enum": ["learned_absolute", "rope"]
+    },
+    "rope_theta": {
+      "type": ["number", "null"],
+      "exclusiveMinimum": 0,
+      "description": "Null for learned_absolute positions."
+    },
+    "rope_scaling": {
+      "type": ["object", "null"],
+      "description": "Reserved for future RoPE scaling variants.",
+      "additionalProperties": true
+    },
+    "mlp_type": {
+      "type": "string",
+      "enum": ["gelu_ffn", "swiglu", "geglu"]
+    },
+    "attention_type": {
+      "type": "string",
+      "enum": ["mha", "mqa", "gqa"]
+    },
+    "attention_bias": {
+      "type": "boolean"
+    },
+    "mlp_bias": {
+      "type": "boolean"
+    },
+    "tie_word_embeddings": {
+      "type": "boolean",
+      "description": "Indicates whether input embedding and output head weights are semantically tied. Phase 0 artifacts still index lm_head.weight explicitly for simplicity."
+    },
+    "bos_token_id": {
+      "type": ["integer", "null"]
+    },
+    "eos_token_id": {
+      "type": ["integer", "null"]
+    },
+    "initializer_range": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "dtype": {
+      "type": "string",
+      "enum": ["float32", "float16", "bfloat16"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "positional_encoding": {
+            "const": "learned_absolute"
+          }
+        },
+        "required": ["positional_encoding"]
+      },
+      "then": {
+        "properties": {
+          "rope_theta": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "attention_type": {
+            "const": "mha"
+          }
+        },
+        "required": ["attention_type"]
+      },
+      "then": {
+        "properties": {
+          "num_key_value_heads": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "model_family": "gpt2",
+      "model_name": "gpt2",
+      "architecture": "decoder_only",
+      "vocab_size": 50257,
+      "max_position_embeddings": 1024,
+      "hidden_size": 768,
+      "num_hidden_layers": 12,
+      "num_attention_heads": 12,
+      "num_key_value_heads": 12,
+      "intermediate_size": 3072,
+      "activation": "gelu_new",
+      "norm_type": "layer_norm",
+      "norm_epsilon": 1e-5,
+      "positional_encoding": "learned_absolute",
+      "rope_theta": null,
+      "rope_scaling": null,
+      "mlp_type": "gelu_ffn",
+      "attention_type": "mha",
+      "attention_bias": true,
+      "mlp_bias": true,
+      "tie_word_embeddings": true,
+      "bos_token_id": 50256,
+      "eos_token_id": 50256,
+      "initializer_range": 0.02,
+      "dtype": "float32"
+    }
+  ]
+}
