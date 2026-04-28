@@ -39,7 +39,6 @@ transformer-inference-engine/
 │  ├─ phase0-gpt2.md
 │  ├─ validation.md
 │  ├─ benchmarks.md
-│  ├─ weight-format.md
 │  └─ upgrade-guides/
 │     ├─ phase1-llama-style.md
 │     ├─ phase2-gemma.md
@@ -51,6 +50,7 @@ transformer-inference-engine/
 │  ├─ model_config_schema.json
 │  ├─ tensor_naming.md
 │  ├─ cache_layout.md
+│  ├─ weight-format.md
 │  ├─ sampling.md
 │  └─ test_vector_format.md
 │
