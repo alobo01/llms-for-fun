@@ -1,0 +1,514 @@
+\part{Modern transformer phases}
+
+\chapter{LLaMA-style architectural changes}
+\label{ch:llama-style}
+After GPT-2 correctness, the roadmap adds LLaMA-style changes such as RoPE, RMSNorm, and gated MLPs. \citep{touvron2023llama}
+
+
+
+\begin{intuitionbox}{Intuition}
+Modernisation changes contracts, not just modules.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A modern dense decoder remains autoregressive but may change positions, norms, MLPs, and tensor names.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Extend config, converter, validator, and tests before adding kernels.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{RoPE}
+\label{ch:rope}
+RoPE rotates query and key channel pairs by position and is not enabled for phase-0 GPT-2. \citep{su2021roformer}
+
+\[
+\theta_{p,j}=p\,\omega_j,\qquad \omega_j=\theta_{\mathrm{base}}^{-2j/d_h},
+\]
+and each even/odd channel pair is rotated as
+\[
+\begin{pmatrix}x'_{2j}\\x'_{2j+1}\end{pmatrix}
+=
+\begin{pmatrix}\cos\theta_{p,j}&-\sin\theta_{p,j}\\
+\sin\theta_{p,j}&\cos\theta_{p,j}\end{pmatrix}
+\begin{pmatrix}x_{2j}\\x_{2j+1}\end{pmatrix}.
+\]
+
+\begin{intuitionbox}{Intuition}
+RoPE moves position information into attention geometry.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+RoPE applies a block-diagonal rotation to Q and K, not V. Decode must use absolute position ids consistent with prefill so cached rotated keys match full recomputation.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Store cached keys after the same rotation used in full recomputation.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{RMSNorm}
+\label{ch:rmsnorm}
+RMSNorm is common in newer decoder families and normalises by root mean square. \citep{zhang2019rmsnorm}
+
+\[
+\operatorname{RMSNorm}(x)_j=\gamma_j\frac{x_j}{\sqrt{H^{-1}\sum_{k=1}^{H}x_k^2+\epsilon}}.
+\]
+
+\begin{intuitionbox}{Intuition}
+RMSNorm scales without mean subtraction.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+RMSNorm divides by the square root of the mean square and multiplies by a learned scale.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Implement it as a separate module from LayerNorm.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Gated MLPs: SwiGLU and GeGLU}
+\label{ch:gated-mlps}
+Gated MLPs use a learned gate and are common in modern decoder families. \citep{shazeer2020glu}
+
+\[
+\operatorname{SwiGLU}(x)=
+\left(\operatorname{SiLU}(xW_g^\top+b_g)\odot (xW_u^\top+b_u)\right)W_d^\top+b_d,
+\]
+where \(W_g,W_u\in\R^{F\times H}\), \(W_d\in\R^{H\times F}\), and biases are present only for model families whose config enables them.
+
+\begin{intuitionbox}{Intuition}
+The gate controls which expanded channels flow.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+SwiGLU and GeGLU compute two expanded vectors in \(\R^F\), combine them with an elementwise product, and then apply the down projection back to \(\R^H\).
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Map gate, up, and down tensors separately in the converter.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{MQA}
+\label{ch:mqa}
+MQA uses many query heads but one or few key/value heads, reducing decode cache bandwidth. \citep{shazeer2019mqa}
+
+
+
+\begin{intuitionbox}{Intuition}
+Fewer KV heads mean fewer cache bytes per token.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Strict MQA is the special case \(H_{kv}=1\) while \(H_q\) may be larger. Implementations can share the same grouped-head machinery as GQA, but the config must still record the exact number of key/value heads.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Generalise attention code without changing phase-0 GPT-2 equality.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{GQA}
+\label{ch:gqa}
+GQA groups query heads over fewer key/value heads. \citep{ainslie2023gqa}
+
+\input{diagrams/gqa}
+
+\begin{intuitionbox}{Intuition}
+GQA is a compromise between MHA quality and MQA bandwidth.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+If \(g=H_q/H_{kv}\) is an integer, query head \(h\) reads key/value head \(\lfloor h/g\rfloor\). The cache stores \(H_{kv}\) heads, while the attention output still has \(H_q\) query-head outputs.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Validate grouping with small distinguishable heads.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Sliding-window attention and cache policies}
+\label{ch:sliding-window}
+Sliding-window attention limits visible history and changes cache semantics. \citep{jiang2023mistral}
+
+\[
+\operatorname{visible}(t,W)=\{\max(0,t+1-W),\ldots,t\}.
+\]
+
+\begin{intuitionbox}{Intuition}
+A cache policy is model semantics.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+For query position \(t\), windowed attention exposes only the bounded suffix \(\operatorname{visible}(t,W)\). Append-only attention is the special case where \(W\) is at least the full accumulated sequence length.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Keep phase-0 append-only; add sliding windows as a later policy.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Modern dense model-family adapters}
+\label{ch:family-adapters}
+Modern dense families differ in norm, attention, tokenizer, position, and checkpoint naming details.
+
+
+
+\begin{intuitionbox}{Intuition}
+Adapters translate a family into internal contracts.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A family adapter supplies config rules, tensor mappings, and validation plans.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Keep adapters thin so core runtime remains reusable.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Qwen/Gemma/Mistral-style implementation considerations}
+\label{ch:qwen-gemma-mistral}
+Qwen, Gemma, and Mistral-style models illustrate why family adapters are necessary. \citep{qwen2024qwen25,gemma2024,jiang2023mistral}
+
+
+
+\begin{intuitionbox}{Intuition}
+Model-family names are not architecture contracts.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+The common core stays decoder inference; adapters specify variant details.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Do not claim support without converter tests and golden vectors.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Long-context validation}
+\label{ch:long-context}
+Long-context validation stresses position offsets, cache memory, visibility policies, and tolerance accumulation.
+
+
+
+\begin{intuitionbox}{Intuition}
+Context length is a semantic claim and a systems claim.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Long-context tests cover positions near limits, cache lengths, memory estimates, and decode equivalence.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Use generated vectors and summaries rather than hard-coded long arrays.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Quantisation overview, marked as later work}
+\label{ch:quantisation}
+Quantisation reduces memory bandwidth and storage but is later work relative to phase-0 float32 correctness.
+
+
+
+\begin{intuitionbox}{Intuition}
+Quantisation changes the numerical contract.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Quantised inference requires scale or block metadata and a documented comparison tolerance.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Do not let quantisation leak into phase-0 artifacts.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}

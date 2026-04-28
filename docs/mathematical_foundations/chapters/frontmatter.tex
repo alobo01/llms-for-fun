@@ -1,0 +1,62 @@
+\begin{titlepage}
+\centering
+\vspace*{18mm}
+{\Huge\bfseries\color{EngineBlue} LLMs for Fun\\[2mm]}
+{\LARGE\bfseries From Zero to a State-of-the-Art LLM's Inference Engine\\[10mm]}
+{\Large PyTorch, Rust, C++, CUDA, and correctness-first systems design\\[16mm]}
+\begin{tcolorbox}[enhanced,colback=EngineGrey,colframe=EngineBlue!70,arc=2mm,width=0.82\textwidth]
+\centering
+\textbf{Conceptual guide.} This book is the mathematical companion to the repository's conceptual guide. It follows the guide's phases, invariants, tensor names, cache semantics, CLI behaviour, artifact layout, validation expectations, and roadmap order without treating any single prose file as a substitute for the executable specifications.
+\end{tcolorbox}
+\vfill
+{\large Complete LaTeX source build\\}
+{\large April 2026}
+\end{titlepage}
+
+\chapter*{Copyright and licence placeholder}
+Copyright and licence terms should be supplied by the project owner before publication. Until then, this manuscript is a technical design and education draft aligned with the repository's conceptual guide.
+
+\chapter*{Preface}
+This book explains how to build an LLM inference engine from first principles while preserving the repository's shared contracts. It is not a training manual and it is not an implementation dump. It is a mathematical and systems design book that connects equations, tensor shapes, artifact files, cache semantics, language interfaces, validation vectors, and eventually CUDA kernels.
+
+\begin{contractbox}{Roadmap invariant}
+\phasezero{} is GPT-2, CPU-first, correctness-first, with PyTorch as the reference engine. C++ and Rust consume the same converted artifacts and must match PyTorch within explicit tolerance. Later phases add LLaMA-style support, RoPE, RMSNorm, gated MLPs, MQA, GQA, sliding-window cache policies, modern dense families, hybrid or recurrent blocks, and CUDA acceleration.
+\end{contractbox}
+
+\chapter*{How to use this book}
+Read Parts I and II for foundations and architecture. Part III is the phase-0 implementation spine. Parts IV and V explain roadmap extensions. Part VI teaches CUDA acceleration after CPU correctness is established. Part VII gives training context only to distinguish inference from training.
+
+Every major chapter includes intuition, a formal or contract statement, implementation interpretation, verification strategy, common failure modes, and exercises with hints.
+
+\chapter*{Notation}
+All tensor equations use mathematical indexing. Physical storage may use a different stride order if the implementation preserves the same logical indices.
+
+\begin{itemize}
+\item \(B\) is batch size, \(T\) is the current input length, \(S\) is the visible cache length, \(L\) is the number of transformer blocks, \(V\) is vocabulary size, and \(P\) is the maximum learned-position table length.
+\item \(H\) is hidden size, \(F\) is feed-forward width, \(H_q\) is the number of query heads, \(H_{kv}\) is the number of key/value heads, and \(d_h=H/H_q\) when attention head dimensions are uniform.
+\item \(I\in\N^{B\times T}\) denotes token ids. Hidden states are \(X\in\R^{B\times T\times H}\), logits are \(Z\in\R^{B\times T\times V}\), and block outputs are written \(X^{(\ell)}\).
+\item Query tensors have logical shape \(Q\in\R^{B\times H_q\times T\times d_h}\). Cached keys and values for layer \(\ell\) have logical shape \(K_\ell,V_\ell\in\R^{B\times H_{kv}\times S\times d_h}\).
+\item For GQA, \(g=H_q/H_{kv}\) must be an integer and query head \(h\) reads key/value head \(\lfloor h/g\rfloor\). Phase-0 GPT-2 is the MHA case \(H_{kv}=H_q\).
+\item The canonical KV-cache logical layout is \(\kvshape\), ordered as batch, key/value head, sequence, and head dimension. This is a logical contract, not a mandatory physical stride order.
+\end{itemize}
+
+\chapter*{Project assumptions}
+This repository is milestone 0.1 material: specifications and documentation exist, while implementation directories and model artifacts are target structure. This book therefore gives pseudocode, interfaces, validation procedures, and mathematical derivations rather than pretending that repository code already exists.
+
+\begin{contractbox}{Key invariants used throughout}
+\begin{itemize}
+\item Converted artifacts use internal tensor names, not upstream checkpoint names.
+\item \file{weights.index.json} offsets and byte counts are authoritative.
+\item Phase-0 artifact support is \dtype{float32}.
+\item GPT-2 and MHA require \code{num_key_value_heads == num_attention_heads}.
+\item KV-cache logical layout is \(\kvshape\).
+\item Model-math validation is separate from tokenizer validation.
+\item Cache equivalence is mandatory.
+\item Benchmarking is not validation.
+\end{itemize}
+\end{contractbox}
+
+\input{diagrams/roadmap}
+
+\chapter*{Build assumptions}
+The book is a standard LaTeX project built with \code{pdflatex} and BibTeX-compatible bibliography tooling. The engine described assumes a Linux-oriented development environment, modern Python, modern PyTorch, Rust 2024 edition, C++20 or later, CMake or equivalent build tooling, and CUDA Toolkit documentation checked at implementation time \citep{pytorchDocs,rust2024edition,cpp2020,cmakeDocs,cudaProgrammingGuide,cudaArchive,cuda13ReleaseNotes}.

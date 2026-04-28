@@ -1,0 +1,94 @@
+\ProvidesPackage{llmbook}[2026/04/28 LLM inference engine book style]
+\RequirePackage[T1]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\IfFileExists{lmodern.sty}{\RequirePackage{lmodern}}{}
+\RequirePackage[a4paper,inner=30mm,outer=23mm,top=26mm,bottom=28mm,marginparwidth=18mm,marginparsep=3mm]{geometry}
+\RequirePackage{microtype}
+\RequirePackage{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{amsmath,amssymb,mathtools}
+\RequirePackage{booktabs,longtable,tabularx,array,multirow}
+\RequirePackage{enumitem}
+\RequirePackage{listings}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,fit,calc,matrix}
+\RequirePackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
+\RequirePackage{marginnote}
+\RequirePackage{caption}
+\RequirePackage{subcaption}
+\RequirePackage{natbib}
+\RequirePackage{xurl}
+
+\definecolor{EngineBlue}{HTML}{1F5F99}
+\definecolor{EngineTeal}{HTML}{007C7C}
+\definecolor{EngineOrange}{HTML}{C56A00}
+\definecolor{EngineRed}{HTML}{B83232}
+\definecolor{EngineGreen}{HTML}{1F7A3D}
+\definecolor{EnginePurple}{HTML}{6A4FB3}
+\definecolor{EngineGrey}{HTML}{F3F5F7}
+\definecolor{EngineDark}{HTML}{1F2933}
+
+\RequirePackage[colorlinks=true,linkcolor=EngineBlue,citecolor=EnginePurple,urlcolor=EngineTeal]{hyperref}
+\hypersetup{pdftitle={LLMs for Fun: From Zero to a State-of-the-Art LLM's Inference Engine},pdfauthor={A project-aligned technical book},pdfsubject={LLM inference engine design},pdfkeywords={LLM, inference, PyTorch, Rust, C++, CUDA, GPT-2}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\emergencystretch=10em
+\sloppy
+\raggedbottom
+\pagestyle{plain}
+\hbadness=10000
+\vbadness=10000
+\hfuzz=50pt
+\vfuzz=50pt
+\setlist{nosep,leftmargin=*}
+\captionsetup{labelfont=bf,font=small}
+\renewcommand{\arraystretch}{1.12}
+
+\lstdefinestyle{enginecode}{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{EngineBlue}\bfseries,
+  commentstyle=\color{EngineGreen!80!black},
+  stringstyle=\color{EngineOrange!90!black},
+  numberstyle=\tiny\color{EngineDark!60},
+  numbers=left,
+  stepnumber=1,
+  numbersep=8pt,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  rulecolor=\color{EngineBlue!35},
+  backgroundcolor=\color{EngineGrey},
+  tabsize=2,
+  captionpos=b
+}
+\lstset{style=enginecode}
+
+\newtcolorbox{definitionbox}[1]{enhanced,breakable,colback=EngineBlue!5,colframe=EngineBlue!75!black,fonttitle=\bfseries,title={#1},arc=1.5mm,boxrule=0.8pt,left=1.5mm,right=1.5mm,top=1mm,bottom=1mm}
+\newtcolorbox{intuitionbox}[1]{enhanced,breakable,colback=EngineTeal!5,colframe=EngineTeal!75!black,fonttitle=\bfseries,title={#1},arc=1.5mm,boxrule=0.8pt,left=1.5mm,right=1.5mm,top=1mm,bottom=1mm}
+\newtcolorbox{warningbox}[1]{enhanced,breakable,colback=EngineOrange!7,colframe=EngineOrange!85!black,fonttitle=\bfseries,title={#1},arc=1.5mm,boxrule=0.8pt,left=1.5mm,right=1.5mm,top=1mm,bottom=1mm}
+\newtcolorbox{verificationbox}[1]{enhanced,breakable,colback=EngineGreen!5,colframe=EngineGreen!80!black,fonttitle=\bfseries,title={#1},arc=1.5mm,boxrule=0.8pt,left=1.5mm,right=1.5mm,top=1mm,bottom=1mm}
+\newtcolorbox{contractbox}[1]{enhanced,breakable,colback=EnginePurple!5,colframe=EnginePurple!80!black,fonttitle=\bfseries,title={#1},arc=1.5mm,boxrule=0.8pt,left=1.5mm,right=1.5mm,top=1mm,bottom=1mm}
+\newtcolorbox{implementationbox}[1]{enhanced,breakable,colback=EngineGrey,colframe=EngineDark!65,fonttitle=\bfseries,title={#1},arc=1.5mm,boxrule=0.6pt,left=1.5mm,right=1.5mm,top=1mm,bottom=1mm}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\shape}[1]{\ensuremath{\left[#1\right]}}
+\newcommand{\dtype}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\file}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\tensorname}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\phasezero}{Phase 0}
+\newcommand{\kvshape}{\shape{B,H_{kv},S,d_h}}
+\newcommand{\margincallout}[1]{\marginnote{\footnotesize\color{EngineBlue}#1}}
+\newenvironment{chapterexercises}{\section*{Exercises}\begin{enumerate}[label=\textbf{E\thechapter.\arabic*.},wide=0pt,leftmargin=*]}{\end{enumerate}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\title{LLMs for Fun:\\From Zero to a State-of-the-Art LLM's Inference Engine}
+\author{A project-aligned technical book}
+\date{April 2026}

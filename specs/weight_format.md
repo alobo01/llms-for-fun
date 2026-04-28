@@ -107,7 +107,7 @@ Optional fields may assist debugging, but loaders must not depend on them for co
 
 ## `weights.bin`
 
-A raw binary file containing tensor data packed one tensor after another in the order recorded by `weights.index.json`.
+A raw binary file containing tensor data packed one tensor after another. Tensor byte ranges are defined by each tensor's explicit `offset` and `nbytes` fields in `weights.index.json`; loaders must not rely on JSON object key order.
 
 Rules:
 
@@ -197,7 +197,7 @@ Implementations may choose to alias `lm_head.weight` to `tok_embeddings.weight` 
 - `float16`
 - `bfloat16`
 
-Loaders may reject unsupported dtypes cleanly.
+The config schema reserves these dtype names for later phases, but phase-0 artifact compliance only requires `float32`. Loaders may reject unsupported dtypes cleanly.
 
 ---
 

@@ -224,7 +224,7 @@ This is the point where I would say:
 
 Current Qwen3 docs expose **GQA** support in the config/model doc layer, and Qwen3.5 family support in Transformers is current and active. ([Hugging Face][7])
 
-But from the configs we already discussed earlier in the conversation, Qwen3.5-like models can introduce **hybrid attention patterns**, meaning your engine may need to support more than one recurrent state/update mechanism.
+Qwen3.5-like models can introduce **hybrid attention patterns**, meaning your engine may need to support more than one recurrent state/update mechanism.
 
 ### Why this is last
 
@@ -338,17 +338,17 @@ Add:
 
 ---
 
-# Is this achievable once phase 1 is done?
+# Is this achievable once phase 0 is done?
 
-Yes — **if phase 1 is done the right way**.
+Yes — **if phase 0 is done the right way**.
 
-If by “phase 1” you mean:
+If by “phase 0” you mean:
 
 > “we wrote a one-off GPT-2 implementation”
 
 then the roadmap is possible, but messy.
 
-If by “phase 1” you mean:
+If by “phase 0” you mean:
 
 > “we built a reusable inference engine core and validated it on GPT-2 in PyTorch, C++, and Rust”
 
@@ -356,7 +356,7 @@ then the roadmap is very achievable.
 
 The difference is architecture.
 
-## What phase 1 must include to make the roadmap realistic
+## What phase 0 must include to make the roadmap realistic
 
 Your GPT-2 implementation should already separate:
 
@@ -392,7 +392,7 @@ Your GPT-2 implementation should already separate:
 
   * append-only vs sliding-window / rolling
 
-If you structure phase 1 that way, every later family becomes mostly:
+If you structure phase 0 that way, every later family becomes mostly:
 
 * new config,
 * new weight mapping,
@@ -473,8 +473,6 @@ It is:
 That is why I would sequence it as:
 
 **GPT-2 → LLaMA-style → Gemma → Mistral → Qwen2.5 → optional Qwen3.5**
-
-If you want, I can turn this into a **feature matrix** showing exactly which abstractions your engine needs at each milestone, so you can design the PyTorch/C++/Rust codebase around the roadmap from day one.
 
 [1]: https://huggingface.co/openai-community/gpt2/blob/main/config.json?utm_source=chatgpt.com "config.json · openai-community/gpt2 at main"
 [2]: https://huggingface.co/docs/transformers/v4.28.0/tasks_explained?utm_source=chatgpt.com "How 🤗 Transformers solve tasks"

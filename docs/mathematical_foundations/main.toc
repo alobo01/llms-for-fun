@@ -1,0 +1,90 @@
+\contentsline {part}{I\hspace {1em}Foundations}{1}{part.1}%
+\contentsline {chapter}{\numberline {1}Why build an LLM inference engine?}{2}{chapter.1}%
+\contentsline {chapter}{\numberline {2}Mathematical notation for tensors and shapes}{4}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Linear algebra for inference engineers}{6}{chapter.3}%
+\contentsline {chapter}{\numberline {4}Probability, logits, softmax, and sampling}{8}{chapter.4}%
+\contentsline {chapter}{\numberline {5}Numerical precision and error tolerances}{10}{chapter.5}%
+\contentsline {chapter}{\numberline {6}PyTorch for reference implementations}{12}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Rust for safe systems inference}{14}{chapter.7}%
+\contentsline {chapter}{\numberline {8}C++ for portable high-performance inference}{15}{chapter.8}%
+\contentsline {chapter}{\numberline {9}CUDA programming model, introduced early}{17}{chapter.9}%
+\contentsline {chapter}{\numberline {10}Testing, verification, golden vectors, and reproducibility}{19}{chapter.10}%
+\contentsline {part}{II\hspace {1em}Engine architecture}{21}{part.2}%
+\contentsline {chapter}{\numberline {11}Shared contracts and why the repo is contract-first}{22}{chapter.11}%
+\contentsline {chapter}{\numberline {12}Model configuration}{24}{chapter.12}%
+\contentsline {chapter}{\numberline {13}Tensor naming and weight artifact design}{26}{chapter.13}%
+\contentsline {chapter}{\numberline {14}SafeTensors and conversion into internal artifacts}{28}{chapter.14}%
+\contentsline {chapter}{\numberline {15}Tokenizers and embedders}{30}{chapter.15}%
+\contentsline {chapter}{\numberline {16}Decoder-only model architecture}{31}{chapter.16}%
+\contentsline {chapter}{\numberline {17}Prefill, decode, and generation loops}{32}{chapter.17}%
+\contentsline {chapter}{\numberline {18}KV-cache abstraction and cache policies}{34}{chapter.18}%
+\contentsline {chapter}{\numberline {19}CLI, validation, and benchmarking contracts}{36}{chapter.19}%
+\contentsline {chapter}{\numberline {20}High-level PyTorch/Rust/C++ interface design}{38}{chapter.20}%
+\contentsline {part}{III\hspace {1em}Phase 0: GPT-2 CPU-first correctness}{40}{part.3}%
+\contentsline {chapter}{\numberline {21}GPT-2 architecture}{41}{chapter.21}%
+\contentsline {chapter}{\numberline {22}Token and learned position embeddings}{43}{chapter.22}%
+\contentsline {chapter}{\numberline {23}LayerNorm}{45}{chapter.23}%
+\contentsline {chapter}{\numberline {24}Causal self-attention}{47}{chapter.24}%
+\contentsline {chapter}{\numberline {25}GELU MLP}{49}{chapter.25}%
+\contentsline {chapter}{\numberline {26}Transformer block composition}{51}{chapter.26}%
+\contentsline {chapter}{\numberline {27}Final normalisation and language-modelling head}{52}{chapter.27}%
+\contentsline {chapter}{\numberline {28}PyTorch reference engine}{54}{chapter.28}%
+\contentsline {chapter}{\numberline {29}Exporting golden vectors}{56}{chapter.29}%
+\contentsline {chapter}{\numberline {30}C++ correctness engine}{58}{chapter.30}%
+\contentsline {chapter}{\numberline {31}Rust correctness engine}{60}{chapter.31}%
+\contentsline {chapter}{\numberline {32}Cross-language validation}{62}{chapter.32}%
+\contentsline {chapter}{\numberline {33}Cache-equivalence testing}{63}{chapter.33}%
+\contentsline {chapter}{\numberline {34}Baseline benchmarking}{64}{chapter.34}%
+\contentsline {part}{IV\hspace {1em}Modern transformer phases}{65}{part.4}%
+\contentsline {chapter}{\numberline {35}LLaMA-style architectural changes}{66}{chapter.35}%
+\contentsline {chapter}{\numberline {36}RoPE}{67}{chapter.36}%
+\contentsline {chapter}{\numberline {37}RMSNorm}{69}{chapter.37}%
+\contentsline {chapter}{\numberline {38}Gated MLPs: SwiGLU and GeGLU}{71}{chapter.38}%
+\contentsline {chapter}{\numberline {39}MQA}{73}{chapter.39}%
+\contentsline {chapter}{\numberline {40}GQA}{74}{chapter.40}%
+\contentsline {chapter}{\numberline {41}Sliding-window attention and cache policies}{76}{chapter.41}%
+\contentsline {chapter}{\numberline {42}Modern dense model-family adapters}{78}{chapter.42}%
+\contentsline {chapter}{\numberline {43}Qwen/Gemma/Mistral-style implementation considerations}{79}{chapter.43}%
+\contentsline {chapter}{\numberline {44}Long-context validation}{80}{chapter.44}%
+\contentsline {chapter}{\numberline {45}Quantisation overview, marked as later work}{81}{chapter.45}%
+\contentsline {part}{V\hspace {1em}Hybrid and recurrent phases}{82}{part.5}%
+\contentsline {chapter}{\numberline {46}Why hybrid token mixers matter}{83}{chapter.46}%
+\contentsline {chapter}{\numberline {47}State-space and recurrent intuition}{84}{chapter.47}%
+\contentsline {chapter}{\numberline {48}Mamba-style blocks}{86}{chapter.48}%
+\contentsline {chapter}{\numberline {49}Recurrent state versus KV-cache}{87}{chapter.49}%
+\contentsline {chapter}{\numberline {50}Interface design for heterogeneous layers}{88}{chapter.50}%
+\contentsline {chapter}{\numberline {51}Validation for hybrid models}{89}{chapter.51}%
+\contentsline {part}{VI\hspace {1em}CUDA acceleration and performance}{90}{part.6}%
+\contentsline {chapter}{\numberline {52}From CPU kernels to CUDA kernels}{91}{chapter.52}%
+\contentsline {chapter}{\numberline {53}Memory layout and tensor storage}{93}{chapter.53}%
+\contentsline {chapter}{\numberline {54}CUDA matmul concepts}{95}{chapter.54}%
+\contentsline {chapter}{\numberline {55}LayerNorm and RMSNorm kernels}{97}{chapter.55}%
+\contentsline {chapter}{\numberline {56}Softmax kernels}{98}{chapter.56}%
+\contentsline {chapter}{\numberline {57}Attention kernels}{100}{chapter.57}%
+\contentsline {chapter}{\numberline {58}Prefill kernels}{101}{chapter.58}%
+\contentsline {chapter}{\numberline {59}Decode kernels}{102}{chapter.59}%
+\contentsline {chapter}{\numberline {60}KV-cache layout on GPU}{103}{chapter.60}%
+\contentsline {chapter}{\numberline {61}Kernel fusion}{104}{chapter.61}%
+\contentsline {chapter}{\numberline {62}Tensor Cores and mixed precision}{105}{chapter.62}%
+\contentsline {chapter}{\numberline {63}CUDA Graphs and launch overhead}{106}{chapter.63}%
+\contentsline {chapter}{\numberline {64}Profiling workflow}{107}{chapter.64}%
+\contentsline {chapter}{\numberline {65}Benchmark interpretation}{108}{chapter.65}%
+\contentsline {chapter}{\numberline {66}Optional architecture notes for RTX 40-series and RTX 5060-style GPUs}{109}{chapter.66}%
+\contentsline {part}{VII\hspace {1em}Training for context}{111}{part.7}%
+\contentsline {chapter}{\numberline {67}What training would add}{112}{chapter.67}%
+\contentsline {chapter}{\numberline {68}Language-modelling loss}{113}{chapter.68}%
+\contentsline {chapter}{\numberline {69}Backpropagation overview}{115}{chapter.69}%
+\contentsline {chapter}{\numberline {70}Optimisers and state}{116}{chapter.70}%
+\contentsline {chapter}{\numberline {71}Why inference is a different engineering problem}{117}{chapter.71}%
+\contentsline {part}{VIII\hspace {1em}Appendices}{119}{part.8}%
+\contentsline {chapter}{\numberline {A}LaTeX notation reference}{120}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Tensor shape cheat sheet}{122}{appendix.B}%
+\contentsline {chapter}{\numberline {C}CUDA technical details}{124}{appendix.C}%
+\contentsline {chapter}{\numberline {D}Rust ownership patterns for inference engines}{125}{appendix.D}%
+\contentsline {chapter}{\numberline {E}C++ memory and RAII patterns}{126}{appendix.E}%
+\contentsline {chapter}{\numberline {F}PyTorch reference implementation patterns}{127}{appendix.F}%
+\contentsline {chapter}{\numberline {G}Artifact validation checklist}{129}{appendix.G}%
+\contentsline {chapter}{\numberline {H}Golden-vector generation checklist}{131}{appendix.H}%
+\contentsline {chapter}{\numberline {I}Benchmark checklist}{133}{appendix.I}%
+\contentsline {chapter}{\numberline {J}Glossary}{135}{appendix.J}%
+\contentsline {chapter}{\numberline {K}Bibliography notes}{137}{appendix.K}%

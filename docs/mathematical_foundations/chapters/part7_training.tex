@@ -1,0 +1,228 @@
+\part{Training for context}
+
+\chapter{What training would add}
+\label{ch:training-adds}
+Training is not the project goal, but knowing what it would add clarifies the inference focus.
+
+
+
+\begin{intuitionbox}{Intuition}
+Training turns forward execution into differentiable optimisation.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Training requires gradients, loss, optimiser state, dataset pipelines, checkpoint writing, and often distributed execution.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Add backward methods, gradient buffers, optimiser hooks, and training checkpoint formats only in a separate project phase.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Language-modelling loss}
+\label{ch:lm-loss}
+The standard autoregressive training objective is next-token prediction.
+
+\[
+\mathcal{L}(\theta)=-\sum_{t=1}^{T-1}\log p_{\theta}(x_{t+1}\mid x_{\leq t}).
+\]
+
+\begin{intuitionbox}{Intuition}
+The model is penalised for assigning low probability to the observed next token.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+The cross-entropy loss sums negative log probabilities of next tokens.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Training implementation would shift logits and labels, mask padding, and compute stable log-softmax.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Backpropagation overview}
+\label{ch:backprop}
+Backpropagation computes derivatives of loss with respect to parameters and activations.
+
+
+
+\begin{intuitionbox}{Intuition}
+Backward pass reverses the forward graph.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+For \(y=f(g(x))\), gradients use the chain rule.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+A training engine must store or recompute activations and implement backward kernels.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Optimisers and state}
+\label{ch:optimisers}
+Optimisers turn gradients into parameter updates and often keep additional state.
+
+
+
+\begin{intuitionbox}{Intuition}
+Optimiser state is another model-sized system.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+SGD is \(\theta\leftarrow\theta-\eta\nabla_\theta L\); adaptive methods store moving statistics.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Training support would require optimiser-state checkpoints separate from inference artifacts.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Why inference is a different engineering problem}
+\label{ch:inference-different}
+Inference focuses on artifact loading, forward computation, cache state, generation, latency, throughput, and reproducibility.
+
+
+
+\begin{intuitionbox}{Intuition}
+Inference is not simpler; it is differently constrained.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A good inference engine guarantees semantics, stable loading, cache correctness, and measured performance.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+This project focuses on inference to complete the cross-language contract before training complexity.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}

@@ -1,0 +1,17 @@
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[node distance=7mm,>=Latex]
+\tikzstyle{filebox}=[rounded rectangle,draw=EnginePurple!80,fill=EnginePurple!6,minimum width=45mm,minimum height=9mm,align=center,font=\small]
+\node[filebox] (cfg) {config.json};
+\node[filebox,below=of cfg] (meta) {metadata.json};
+\node[filebox,below=of meta] (idx) {weights.index.json};
+\node[filebox,below=of idx] (bin) {weights.bin};
+\draw[->,thick] (cfg)--(meta);
+\draw[->,thick] (meta)--(idx);
+\draw[->,thick] (idx)--(bin);
+\node[rounded rectangle,draw=EngineOrange!80,fill=EngineOrange!7,text width=55mm,align=left,right=16mm of idx,font=\small] {Runtime code trusts internal tensor names and authoritative byte offsets, not upstream checkpoint names.};
+\end{tikzpicture}
+}
+\caption{Internal artifact format and its authority boundaries.}
+\end{figure}

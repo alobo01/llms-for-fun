@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository implements a decoder-only language model inference engine in three languages: PyTorch, C++, and Rust. The project begins with GPT-2 support and evolves through a staged roadmap toward modern dense open LLM families.
+This repository defines the architecture and shared contracts for a decoder-only language model inference engine intended to be implemented in three languages: PyTorch, C++, and Rust. The project begins with GPT-2 support and evolves through a staged roadmap toward modern dense open LLM families.
 
 The repository is organized around shared engine contracts rather than language-specific implementations. Shared specs define model config schema, tensor naming, weight artifact format, cache layout, test-vector formats, and CLI behavior. Language implementations consume those specs and artifacts while remaining free to differ in internal optimization strategy.
 
@@ -82,7 +82,7 @@ That future-proofing should happen at the config and interface level, not by pre
 
 ## Repository structure
 
-A representative repository layout is:
+A representative target repository layout is shown below. During milestone 0.1 the repository may contain only `docs/` and `specs/`; implementation, artifact, test, benchmark, and profiling directories are added when those workstreams begin.
 
 ```text
 transformer-inference-engine/

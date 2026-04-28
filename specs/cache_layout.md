@@ -17,7 +17,7 @@ The canonical logical cache layout is:
 
 This is the chosen layout because it generalizes directly from GPT-2 multi-head attention to later MQA and GQA models.
 
-Although GPT-2 has `kv_heads == attention_heads`, phase 0 uses the name `kv_heads` now so later phases do not require renaming the cache contract.
+Although GPT-2 has `num_key_value_heads == num_attention_heads`, phase 0 uses the name `kv_heads` in cache layouts now so later phases do not require renaming the cache contract.
 
 ---
 

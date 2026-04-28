@@ -1,0 +1,21 @@
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[node distance=8mm,>=Latex]
+\tikzstyle{proc}=[rounded rectangle,draw=EngineBlue!80,fill=EngineBlue!6,minimum width=31mm,minimum height=9mm,align=center,font=\small]
+\tikzstyle{state}=[rounded rectangle,draw=EnginePurple!80,fill=EnginePurple!6,minimum width=31mm,minimum height=9mm,align=center,font=\small]
+\node[proc] (prompt) {prompt ids};
+\node[proc,right=of prompt] (prefill) {prefill};
+\node[state,right=of prefill] (cache) {KV cache};
+\node[proc,below=of cache] (decode) {decode};
+\node[proc,left=of decode] (sample) {sample id};
+\node[state,right=of decode] (cache2) {cache append};
+\draw[->,thick] (prompt)--(prefill);
+\draw[->,thick] (prefill)--(cache);
+\draw[->,thick] (cache)--(decode);
+\draw[->,thick] (decode)--(sample);
+\draw[->,thick] (decode)--(cache2);
+\end{tikzpicture}
+}
+\caption{Prefill builds cache state; decode reuses and appends it.}
+\end{figure}
