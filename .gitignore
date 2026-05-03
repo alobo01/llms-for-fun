@@ -5,3 +5,27 @@ __pycache__/
 *.pyo
 *.pyd
 *.log
+# LaTeX build temporaries
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+
+# LaTeX intermediate directories
+_minted-*/

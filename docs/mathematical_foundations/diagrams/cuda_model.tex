@@ -1,0 +1,23 @@
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[node distance=8mm,>=Latex]
+\tikzstyle{level}=[rounded rectangle,draw=EngineBlue!80,fill=EngineBlue!6,minimum width=28mm,minimum height=8mm,align=center,font=\small]
+\node[level] (grid) {grid};
+\node[level,below left=of grid] (block1) {block};
+\node[level,below right=of grid] (block2) {block};
+\node[level,below=of block1] (warp1) {warp};
+\node[level,below=of block2] (warp2) {warp};
+\node[level,below=of warp1] (thread1) {threads};
+\node[level,below=of warp2] (thread2) {threads};
+\draw[->,thick] (grid)--(block1);
+\draw[->,thick] (grid)--(block2);
+\draw[->,thick] (block1)--(warp1);
+\draw[->,thick] (block2)--(warp2);
+\draw[->,thick] (warp1)--(thread1);
+\draw[->,thick] (warp2)--(thread2);
+\node[rounded rectangle,draw=EngineGreen!80,fill=EngineGreen!7,align=left,text width=44mm,right=15mm of block2,font=\small] {registers\\shared memory\\global memory\\constant memory};
+\end{tikzpicture}
+}
+\caption{CUDA execution and memory hierarchy.}
+\end{figure}

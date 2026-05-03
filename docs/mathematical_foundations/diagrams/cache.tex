@@ -1,0 +1,15 @@
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[>=Latex]
+\draw[fill=EngineBlue!8,draw=EngineBlue!70] (0,0) rectangle (7.2,2.8);
+\draw[fill=EngineTeal!10,draw=EngineTeal!70] (0.5,0.45) rectangle (7.7,3.25);
+\draw[fill=EngineGreen!10,draw=EngineGreen!70] (1.0,0.9) rectangle (8.2,3.7);
+\node at (4.2,2.35) {logical KV cache};
+\draw[<->,thick] (1.0,0.75)--(8.2,0.75) node[midway,below] {seq};
+\draw[<->,thick] (8.45,0.9)--(8.45,3.7) node[midway,right] {head dim};
+\node[font=\small] at (4.1,-0.4) {$[B,H_{kv},S,d_h]$ logical layout; physical layout may differ.};
+\end{tikzpicture}
+}
+\caption{Canonical KV-cache logical layout.}
+\end{figure}

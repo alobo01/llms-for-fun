@@ -246,7 +246,7 @@ Phase 0 defines canonical logical KV-cache layout as:
 - keys: `[batch, kv_heads, seq, head_dim]`
 - values: `[batch, kv_heads, seq, head_dim]`
 
-For GPT-2, `kv_heads == attention_heads`, but the chosen layout generalizes cleanly to MQA and GQA later.
+For GPT-2, `num_key_value_heads == num_attention_heads`, but the chosen layout generalizes cleanly to MQA and GQA later.
 
 ### 3. Model correctness is separated from tokenizer correctness
 

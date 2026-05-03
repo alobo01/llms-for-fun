@@ -1,0 +1,25 @@
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[node distance=8mm,>=Latex]
+\tikzstyle{box}=[rounded rectangle,draw=EngineDark!70,fill=EngineGrey,minimum width=31mm,minimum height=9mm,align=center,font=\small]
+\tikzstyle{blue}=[rounded rectangle,draw=EngineBlue!80,fill=EngineBlue!7,minimum width=31mm,minimum height=9mm,align=center,font=\small]
+\node[blue] (specs) {shared specs};
+\node[box,below=of specs] (tools) {conversion tools};
+\node[box,below=of tools] (artifacts) {converted artifacts};
+\node[box,below left=12mm and 14mm of artifacts] (pt) {PyTorch reference};
+\node[box,below=12mm of artifacts] (cpp) {C++ engine};
+\node[box,below right=12mm and 14mm of artifacts] (rs) {Rust engine};
+\node[blue,below=18mm of cpp] (val) {validation and benchmarks};
+\draw[->,thick] (specs)--(tools);
+\draw[->,thick] (tools)--(artifacts);
+\draw[->,thick] (artifacts)--(pt);
+\draw[->,thick] (artifacts)--(cpp);
+\draw[->,thick] (artifacts)--(rs);
+\draw[->,thick,EngineGreen!70!black] (pt)--(val);
+\draw[->,thick,EngineGreen!70!black] (cpp)--(val);
+\draw[->,thick,EngineGreen!70!black] (rs)--(val);
+\end{tikzpicture}
+}
+\caption{Contract-first architecture: three runtimes consume one artifact and one validation contract.}
+\end{figure}

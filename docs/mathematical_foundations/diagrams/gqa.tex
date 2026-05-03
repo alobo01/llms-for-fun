@@ -1,0 +1,12 @@
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[>=Latex]
+\foreach \i in {0,...,7}{\node[draw,fill=EngineBlue!8,minimum width=7mm,minimum height=7mm] (q\i) at (\i*0.75,0) {$Q_{\i}$};}
+\foreach \j in {0,...,1}{\node[draw,fill=EngineTeal!12,minimum width=14mm,minimum height=7mm] (kv\j) at (\j*3.0+1.1,-1.3) {$K,V_{\j}$};}
+\foreach \i in {0,1,2,3}{\draw[->,EngineTeal!80!black] (q\i.south)--(kv0.north);}
+\foreach \i in {4,5,6,7}{\draw[->,EngineTeal!80!black] (q\i.south)--(kv1.north);}
+\end{tikzpicture}
+}
+\caption{GQA maps groups of query heads to fewer key/value heads.}
+\end{figure}

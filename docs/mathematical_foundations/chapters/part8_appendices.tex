@@ -1,0 +1,580 @@
+\part{Appendices}
+
+\chapter{LaTeX notation reference}
+\label{app:notation}
+This appendix summarises notation used in equations and implementation checks.
+
+
+{\small
+\begin{longtable}{L{0.22\textwidth}L{0.68\textwidth}}
+\caption{Core notation.}\\
+\toprule
+Symbol & Meaning \\
+\midrule
+\endfirsthead
+\toprule
+Symbol & Meaning \\
+\midrule
+\endhead
+\(B,T,S,L\) & Batch size, current input length, visible cache length, and number of layers. \\
+\(V,P,H,F\) & Vocabulary size, maximum position length, hidden size, and feed-forward width. \\
+\(H_q,H_{kv},d_h,g\) & Query heads, key/value heads, per-head dimension, and GQA group size \(g=H_q/H_{kv}\). \\
+\(I\) & Token-id tensor in \(\N^{B\times T}\). \\
+\(X^{(\ell)}\) & Hidden states entering block \(\ell\), with shape \([B,T,H]\). \\
+\(K_\ell,V_\ell\) & Layer-\(\ell\) KV-cache tensors with logical shape \([B,H_{kv},S,d_h]\). \\
+\(Z\) & Logits with shape \([B,T,V]\). \\
+\bottomrule
+\end{longtable}}
+
+
+\begin{intuitionbox}{Intuition}
+Notation reduces ambiguity.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+The same symbols are used in formulas, tensor shape tables, and validators.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Update notation before adding a new module.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Tensor shape cheat sheet}
+\label{app:shape-cheat}
+This appendix collects common tensor shapes.
+
+
+{\small
+\begin{longtable}{L{0.28\textwidth}L{0.28\textwidth}L{0.34\textwidth}}
+\caption{Tensor shape cheat sheet.}\\
+\toprule
+Tensor & Shape & Notes \\
+\midrule
+\endfirsthead
+\toprule
+Tensor & Shape & Notes \\
+\midrule
+\endhead
+Input ids & $[B,T]$ & Integer token ids. \\
+Hidden states & $[B,T,H]$ & Residual stream. \\
+Queries & $[B,H_q,T,d_h]$ & Per-head query tensor. \\
+Keys/values & $[B,H_{kv},S,d_h]$ & Cached attention state by layer. \\
+Attention output by head & $[B,H_q,T,d_h]$ & Concatenate heads back to $[B,T,H]$. \\
+Logits & $[B,T,V]$ & Vocabulary scores. \\
+GPT-2 QKV weight & $[3H,H]$ & Fused projection. \\
+GPT-2 MLP input weight & $[F,H]$ & Feed-forward expansion. \\
+GPT-2 MLP output weight & $[H,F]$ & Feed-forward contraction. \\
+\bottomrule
+\end{longtable}}
+
+
+\begin{intuitionbox}{Intuition}
+A shape cheat sheet is a debugging tool.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Phase-0 GPT-2 has \(H_{kv}=H_q\); later MQA/GQA may not.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Use the table while reviewing code for transposes.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{CUDA technical details}
+\label{app:cuda-details}
+This appendix lists CUDA details that matter for later kernels. \citep{cudaProgrammingGuide}
+
+
+
+\begin{intuitionbox}{Intuition}
+The bottleneck determines kernel design.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Coalescing, occupancy, latency hiding, register pressure, shared memory, PTX, SASS, streams, events, and graphs interact.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Use profiler evidence before architecture-specific tuning.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Rust ownership patterns for inference engines}
+\label{app:rust-patterns}
+Rust patterns include owned buffers, borrowed tensor views, typed errors, and explicit cache mutation. \citep{rustBook}
+
+
+
+\begin{intuitionbox}{Intuition}
+A view is safe only when storage outlives it.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Use lifetimes and typed wrappers for shapes, offsets, and byte counts.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Keep unsafe code out of the phase-0 correctness path.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{C++ memory and RAII patterns}
+\label{app:cpp-patterns}
+C++ patterns include RAII file buffers, non-owning spans, and checked tensor views. \citep{cpp2020}
+
+
+
+\begin{intuitionbox}{Intuition}
+RAII makes lifetime visible.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+An owned buffer can safely produce tensor views if view lifetime is controlled.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Use sanitiser builds and deterministic tests.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{PyTorch reference implementation patterns}
+\label{app:pytorch-patterns}
+PyTorch reference patterns favour clarity, explicit dtype, and stable exports. \citep{pytorchDocs}
+
+
+
+\begin{intuitionbox}{Intuition}
+Reference code should be easy to distrust productively.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Use internal tensor names, CPU float32, named intermediates, and deterministic vector output.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Do not hide contracts in upstream model classes.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Artifact validation checklist}
+\label{app:artifact-check}
+This checklist validates internal artifacts before model execution.
+
+
+\begin{enumerate}[label=\textbf{G.\arabic*.}]
+\item Parse \file{config.json}; reject invalid fields.
+\item Parse \file{metadata.json}; check format version, endianness, dtype, and filenames.
+\item Parse \file{weights.index.json}; do not rely on key order.
+\item Check every required tensor name, dtype, shape, offset, and byte count.
+\item Reject byte ranges that overlap or exceed \file{weights.bin}.
+\item Verify phase-0 little-endian row-major \dtype{float32}.
+\end{enumerate}
+
+
+\begin{intuitionbox}{Intuition}
+Bad artifacts should fail early.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Validation covers config, metadata, index entries, byte ranges, dtype, endianness, and required names.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Automate the checklist in every language.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Golden-vector generation checklist}
+\label{app:golden-check}
+This checklist summarises vector generation.
+
+
+\begin{enumerate}[label=\textbf{H.\arabic*.}]
+\item Select authoritative input ids.
+\item Run the PyTorch CPU float32 reference.
+\item Export JSON sidecar with model identity, dtype, tolerance, and check names.
+\item Export NPZ arrays for larger tensors.
+\item Store vectors under \file{artifacts/test_vectors/gpt2/gpt2/}.
+\item Never paste long arrays into prose or comments.
+\end{enumerate}
+
+
+\begin{intuitionbox}{Intuition}
+A reference vector is generated, not invented.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A vector records input ids, dtype, tolerance, named arrays, and model identity.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Regenerate vectors only after intentional reference or contract changes.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Benchmark checklist}
+\label{app:benchmark-check}
+This checklist keeps performance measurement separate from correctness.
+
+
+\begin{enumerate}[label=\textbf{I.\arabic*.}]
+\item Run validation first.
+\item Record backend, model artifact, prompt length, decode length, and batch size.
+\item Warm up before measuring.
+\item Separate prefill and decode metrics.
+\item Report enough context to reproduce.
+\end{enumerate}
+
+
+\begin{intuitionbox}{Intuition}
+A benchmark is meaningful only for a specified workload.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Benchmark reports should include workload, backend, and validation status.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Use the same benchmark suite across languages.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Glossary}
+\label{app:glossary}
+The glossary defines recurring terms in this project.
+
+
+\begin{description}[leftmargin=!,labelwidth=28mm]
+\item[Artifact] Internal model directory containing config, metadata, index, and binary weights.
+\item[Cache equivalence] Full recomputation equals prefill plus cached decode within tolerance.
+\item[Conceptual guide] Repository-level design narrative that explains intent while executable specs define exact contracts.
+\item[Decode] Incremental generation path using cached state.
+\item[GQA] Grouped-query attention, where \(H_q/H_{kv}\) query heads share each key/value head.
+\item[Golden vector] Generated validation record consumed by all runtimes.
+\item[KV cache] Per-layer keys and values with logical layout \(\kvshape\).
+\item[MQA] Multi-query attention, the \(H_{kv}=1\) special case of grouped key/value sharing.
+\item[Prefill] Prompt-processing path that initialises cache state.
+\item[RoPE] Rotary positional embedding.
+\item[Tensor Core] NVIDIA matrix-multiply acceleration hardware for supported operations.
+\end{description}
+
+
+\begin{intuitionbox}{Intuition}
+Precise words prevent imprecise code.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A term is defined by its contract and verification strategy.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Extend the glossary when new roadmap phases are added.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Bibliography notes}
+\label{app:bib-notes}
+The bibliography cites foundational papers, model references, and official documentation.
+
+
+
+\begin{intuitionbox}{Intuition}
+References guide design; validation proves implementation.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Use papers for architecture ideas and official docs for APIs and version-sensitive details.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Check official CUDA, PyTorch, Rust, C++, and SafeTensors docs when versions change.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}

@@ -26,14 +26,14 @@ That way:
 
 ---
 
-# Recommended repo structure
+# Recommended target repo structure
 
-I would structure it like this:
+The full project should evolve toward the structure below. The current milestone-0.1 repository may contain only `docs/` and `specs/`; implementation, artifact, test, benchmark, and profiling directories are added when those workstreams begin.
 
 ```text
 transformer-inference-engine/
 ├─ README.md
-├─ ROADMAP.md
+├─ roadmap.md
 ├─ docs/
 │  ├─ architecture.md
 │  ├─ phase0-gpt2.md
@@ -50,8 +50,9 @@ transformer-inference-engine/
 │  ├─ model_config_schema.json
 │  ├─ tensor_naming.md
 │  ├─ cache_layout.md
-│  ├─ weight-format.md
+│  ├─ weight_format.md
 │  ├─ sampling.md
+│  ├─ cli_contract.md
 │  └─ test_vector_format.md
 │
 ├─ artifacts/
@@ -81,11 +82,6 @@ transformer-inference-engine/
 │  └─ dev/
 │     ├─ format_all.sh
 │     └─ lint_all.sh
-│
-├─ shared/
-│  ├─ schemas/
-│  ├─ examples/
-│  └─ reference_configs/
 │
 ├─ implementations/
 │  ├─ pytorch/
@@ -986,5 +982,3 @@ And break phase 0 into:
 6. benchmark/profiling baseline
 
 If you do that, every later model family becomes an incremental engine upgrade instead of a structural rewrite.
-
-I can next give you a **concrete internal config schema and weight naming scheme for phase 0 GPT-2**, which is probably the best next design step.

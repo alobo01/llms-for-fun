@@ -1,0 +1,542 @@
+\part{Engine architecture}
+
+\chapter{Shared contracts and why the repo is contract-first}
+\label{ch:shared-contracts}
+The repository is organised around shared contracts rather than independent language ports. The specs define behaviour; artifacts carry data; implementations consume the same contract.
+
+\input{diagrams/architecture}
+
+\begin{intuitionbox}{Intuition}
+A shared contract is what makes cross-language comparison meaningful.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+The shared contract includes model config, tensor names, artifact layout, cache semantics, test-vector schema, CLI output, and benchmark separation.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Put artifact validation before model execution. A runtime that cannot prove the artifact is valid should not produce logits.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Model configuration}
+\label{ch:model-config}
+The model config is internal to the engine. It is not a Hugging Face config.
+
+
+\begin{table}[htbp]\centering\small
+\begin{tabularx}{\textwidth}{L{0.30\textwidth}Y}
+\toprule
+Field group & Required semantics \\
+\midrule
+Identity & \code{model_family}, \code{model_name}, \code{architecture}. \\
+Sizes & \code{vocab_size}, \code{max_position_embeddings}, \code{hidden_size}, layers, heads, KV heads, intermediate size. \\
+Module choices & Activation, norm type, positional encoding, MLP type, attention type. \\
+Flags & Attention bias, MLP bias, tied embeddings. \\
+Tokens and dtype & BOS, EOS, and phase-0 \dtype{float32}. \\
+Nullable later fields & \code{rope_theta}, \code{rope_scaling}, initializer range. \\
+\bottomrule
+\end{tabularx}
+\caption{Model configuration groups.}
+\end{table}
+
+
+\begin{intuitionbox}{Intuition}
+Configuration is the type signature of the model.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Phase-0 GPT-2 requires \code{architecture=decoder_only}, \dtype{float32}, learned absolute positions, MHA, and \code{num_key_value_heads == num_attention_heads}.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Parse into a strongly checked \code{ModelConfig}. Compute derived values such as \code{head_dim} only after validation.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Tensor naming and weight artifact design}
+\label{ch:tensor-naming}
+Converted artifacts use canonical internal tensor names. Runtime loaders must not depend on upstream checkpoint names.
+
+
+{\scriptsize
+\begin{longtable}{L{0.42\textwidth}L{0.28\textwidth}L{0.20\textwidth}}
+\caption{Required GPT-2 internal tensor names.}\\
+\toprule
+Tensor & Shape & Role \\
+\midrule
+\endfirsthead
+\toprule
+Tensor & Shape & Role \\
+\midrule
+\endhead
+\tensorname{tok_embeddings.weight} & $[V,H]$ & Token table \\
+\tensorname{pos_embeddings.weight} & $[P,H]$ & Positions \\
+\tensorname{blocks.i.ln_1.weight} and \tensorname{bias} & $[H]$ & First norm \\
+\tensorname{blocks.i.attn.qkv.weight} & $[3H,H]$ & Fused QKV \\
+\tensorname{blocks.i.attn.qkv.bias} & $[3H]$ & QKV bias \\
+\tensorname{blocks.i.attn.out_proj.weight} & $[H,H]$ & Output projection \\
+\tensorname{blocks.i.attn.out_proj.bias} & $[H]$ & Output bias \\
+\tensorname{blocks.i.ln_2.weight} and \tensorname{bias} & $[H]$ & Second norm \\
+\tensorname{blocks.i.mlp.fc_in.weight} & $[F,H]$ & MLP expansion \\
+\tensorname{blocks.i.mlp.fc_in.bias} & $[F]$ & MLP bias \\
+\tensorname{blocks.i.mlp.fc_out.weight} & $[H,F]$ & MLP contraction \\
+\tensorname{blocks.i.mlp.fc_out.bias} & $[H]$ & MLP bias \\
+\tensorname{ln_f.weight} and \tensorname{bias} & $[H]$ & Final norm \\
+\tensorname{lm_head.weight} & $[V,H]$ & Explicit LM head \\
+\bottomrule
+\end{longtable}}
+
+
+\begin{intuitionbox}{Intuition}
+Names are part of the engine ABI.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+GPT-2 uses top-level prefixes \tensorname{tok_embeddings}, \tensorname{pos_embeddings}, \tensorname{blocks}, \tensorname{ln_f}, and \tensorname{lm_head}.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+The converter owns upstream-name knowledge. Runtime loaders use only internal names and required shapes.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{SafeTensors and conversion into internal artifacts}
+\label{ch:safetensors-conversion}
+The project supports direct SafeTensors loading for inspection and conversion from SafeTensors or upstream checkpoints into internal artifacts. \citep{safetensorsDocs}
+
+
+\input{diagrams/artifact}
+\begin{lstlisting}[caption={Schematic weights.index.json entry.}]
+{
+  "blocks.0.attn.qkv.weight": {
+    "dtype": "float32",
+    "shape": [2304, 768],
+    "offset": 1048576,
+    "nbytes": 7077888,
+    "source_name": "transformer.h.0.attn.c_attn.weight"
+  }
+}
+\end{lstlisting}
+
+
+\begin{intuitionbox}{Intuition}
+Direct loading is convenient; conversion is the contract boundary.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A valid artifact has \file{config.json}, \file{metadata.json}, \file{weights.index.json}, and \file{weights.bin}. Index offsets and byte counts are authoritative.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Implement \code{SafeTensorLoader} for direct reads, \code{ArtifactConverter} for mapping into internal names, and \code{WeightLoader} for runtime artifacts.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Tokenizers and embedders}
+\label{ch:tokenizers-embedders}
+Tokenizers convert text to ids and ids back to text. Tokenizer validation is separate from model-math validation.
+
+
+
+\begin{intuitionbox}{Intuition}
+The model consumes token ids, not strings.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Token embeddings map $I\in\N^{B\times T}$ to $X\in\R^{B\times T\times H}$ by table lookup; learned positions add a row per position.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+For correctness vectors, \code{input_ids} are authoritative and prompt text is optional metadata.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Decoder-only model architecture}
+\label{ch:decoder-only}
+The engine targets decoder-only autoregressive models. GPT-2 proves the baseline dense decoder stack.
+
+
+
+\begin{intuitionbox}{Intuition}
+A decoder sees past tokens and never future tokens.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+The model maps ids to logits $Z\in\R^{B\times T\times V}$ through embeddings, blocks, final normalisation, and an LM head.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Keep block variants behind configuration and model-family adapters.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Prefill, decode, and generation loops}
+\label{ch:prefill-decode}
+Prefill processes a prompt and builds cache state. Decode processes incremental tokens using cached state.
+
+\input{diagrams/prefill_decode}
+
+\begin{intuitionbox}{Intuition}
+Generation is stateful and must be tested as stateful.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Cache equivalence states that full recomputation on prompt plus token equals prefill on the prompt followed by cached decode within tolerance.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Expose \code{Prefill}, \code{Decode}, and \code{GenerationLoop}. Keep stop conditions and sampler policy explicit.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{KV-cache abstraction and cache policies}
+\label{ch:kv-cache}
+The KV cache stores recurrent decode state per layer. Phase 0 uses append-only cache; later phases add sliding-window policies.
+
+\input{diagrams/cache}
+
+\begin{intuitionbox}{Intuition}
+A cache is a visibility rule plus stored tensors.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+For each layer \(\ell\), keys and values have logical shape \(K_\ell,V_\ell\in\R^{B\times H_{kv}\times S\times d_h}\). In phase 0, the visible span for decode step \(t\) is the full accumulated prefix \(s\leq S+t\); sliding-window policies later replace this with a bounded visibility predicate.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Implement \code{KVCache}, \code{CachePolicy}, \code{AppendOnlyCache}, and \code{SlidingWindowCache}; only append-only is active in phase 0.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{CLI, validation, and benchmarking contracts}
+\label{ch:cli-contracts}
+The CLI contract makes all runtimes comparable from automation. Required commands are run, generate, test, and bench.
+
+
+\begin{lstlisting}[caption={Common CLI operations.}]
+engine run --model <model_dir> --input-ids 15496,995
+engine generate --model <model_dir> --input-ids 15496,995 --max-new-tokens 16
+engine test --model <model_dir> --test-vector <path>
+engine bench --model <model_dir> --suite <suite_config>
+\end{lstlisting}
+
+
+\begin{intuitionbox}{Intuition}
+A CLI is a reproducibility surface.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Automation-facing commands must support JSON output and nonzero exit codes for failure. Correctness workflows should prefer input ids.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+The model path points to a converted artifact directory, never an upstream checkpoint cache.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{High-level PyTorch/Rust/C++ interface design}
+\label{ch:interfaces}
+The same conceptual interfaces appear in PyTorch, C++, and Rust even when language idioms differ.
+
+
+{\scriptsize
+\begin{longtable}{L{0.42\textwidth}L{0.52\textwidth}}
+\caption{Abstract components required by the conceptual guide.}\\
+\toprule
+Component & Responsibility \\
+\midrule
+\endfirsthead
+\toprule
+Component & Responsibility \\
+\midrule
+\endhead
+\texttt{ModelConfig} & Validated engine-native model configuration. \\
+\texttt{WeightLoader}, \texttt{SafeTensorLoader}, \texttt{ArtifactConverter} & Direct SafeTensors reading where useful and conversion into internal artifacts. \\
+\texttt{Tensor}, \texttt{Device}, \texttt{DType} & Shape, dtype, layout, storage, and placement. \\
+\texttt{Tokenizer}, \texttt{Embedder}, \texttt{TokenEmbedding} & Text boundary and embedding lookup. \\
+\texttt{PositionalEncoding}, \texttt{LearnedAbsolutePositionEncoding}, \texttt{RoPE} & Position strategies. \\
+\texttt{Attention}, \texttt{SelfAttention}, \texttt{MultiHeadAttention}, \texttt{MQA}, \texttt{GQA}, \texttt{AttentionKernel} & Attention semantics and backend kernels. \\
+\texttt{MLPBlock}, \texttt{GELUFFN}, \texttt{SwiGLU}, \texttt{GeGLU}, \texttt{Activation} & Feed-forward families and activations. \\
+\texttt{LayerNorm}, \texttt{RMSNorm}, \texttt{ResidualBlock}, \texttt{TransformerBlock} & Normalisation and block composition. \\
+\texttt{MambaBlock} & Hybrid or recurrent block abstraction. \\
+\texttt{KVCache}, \texttt{CachePolicy}, \texttt{AppendOnlyCache}, \texttt{SlidingWindowCache} & Cache storage and visibility policy. \\
+\texttt{Sampler}, \texttt{GreedySampler}, \texttt{TemperatureSampler}, \texttt{TopKSampler}, \texttt{TopPSampler} & Logit-to-token policies. \\
+\texttt{GenerationLoop}, \texttt{Prefill}, \texttt{Decode} & Autoregressive scheduling. \\
+\texttt{Validator}, \texttt{GoldenVectorExporter}, \texttt{BenchmarkRunner}, \texttt{Profiler} & Correctness, reproducibility, measurement, and diagnostics. \\
+\bottomrule
+\end{longtable}}
+
+
+\begin{intuitionbox}{Intuition}
+Interfaces should expose invariants, not implementation accidents.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+The engine vocabulary includes config, loading, tensors, devices, tokenizers, modules, caches, samplers, generation, validation, benchmarking, and profiling.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Use PyTorch for clarity, C++ for portable systems performance, Rust for ownership discipline, and CUDA as a later backend.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}

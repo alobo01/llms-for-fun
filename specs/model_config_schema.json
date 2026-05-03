@@ -66,7 +66,7 @@
     "num_key_value_heads": {
       "type": "integer",
       "minimum": 1,
-      "description": "For GPT-2 this equals num_attention_heads. The field exists now so MQA and GQA models can reuse the same config contract later."
+      "description": "For GPT-2 and MHA this equals num_attention_heads. The field exists now so MQA and GQA models can reuse the same config contract later."
     },
     "intermediate_size": {
       "type": "integer",
@@ -105,7 +105,8 @@
     },
     "attention_type": {
       "type": "string",
-      "enum": ["mha", "mqa", "gqa"]
+      "enum": ["mha", "mqa", "gqa"],
+      "description": "For attention_type = mha, semantic validation must enforce num_key_value_heads == num_attention_heads. JSON Schema cannot express that cross-field equality directly."
     },
     "attention_bias": {
       "type": "boolean"
@@ -129,7 +130,8 @@
     },
     "dtype": {
       "type": "string",
-      "enum": ["float32", "float16", "bfloat16"]
+      "enum": ["float32", "float16", "bfloat16"],
+      "description": "Phase 0 requires float32 artifact support. float16 and bfloat16 are reserved for later phases."
     }
   },
   "allOf": [
@@ -160,9 +162,7 @@
         "required": ["attention_type"]
       },
       "then": {
-        "properties": {
-          "num_key_value_heads": true
-        }
+        "$comment": "Semantic validation outside JSON Schema must enforce num_key_value_heads == num_attention_heads for MHA configs, including GPT-2 phase 0."
       }
     }
   ],

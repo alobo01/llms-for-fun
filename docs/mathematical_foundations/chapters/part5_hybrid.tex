@@ -1,0 +1,274 @@
+\part{Hybrid and recurrent phases}
+
+\chapter{Why hybrid token mixers matter}
+\label{ch:hybrid-mixers}
+Hybrid token mixers explore architectures beyond pure attention.
+
+
+
+\begin{intuitionbox}{Intuition}
+Attention stores history explicitly; recurrent mixers compress it into state.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A heterogeneous stack may contain attention blocks, MLPs, and recurrent blocks, each with its own state.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Let layers declare state kind: KV cache, recurrent state, both, or neither.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{State-space and recurrent intuition}
+\label{ch:state-space}
+State-space and recurrent models update hidden state as tokens arrive. \citep{gu2024mamba}
+
+\[
+h_t=A_t h_{t-1}+B_t x_t,\qquad y_t=C_t h_t+D_t x_t,
+\]
+where \(h_t\) is recurrent state, \(x_t\) is the token representation, and the matrices may be input-dependent in selective state-space models.
+
+\begin{intuitionbox}{Intuition}
+A recurrent state is a summary with an update law.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+At a high level, a recurrent token mixer maps \((h_{t-1},x_t)\) to \((h_t,y_t)\). Sequence-mode evaluation and repeated step-mode evaluation must produce matching \(y_{1:T}\) within tolerance.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Validate sequence scan against repeated step updates.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Mamba-style blocks}
+\label{ch:mamba-blocks}
+Mamba-style blocks are a concrete later-phase recurrent or state-space family. \citep{gu2024mamba}
+
+
+
+\begin{intuitionbox}{Intuition}
+A Mamba-style block replaces all-pairs attention with a structured scan.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+The exact parameterisation is model-specific, but the engine abstraction can be common.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Add \code{MambaBlock} with state allocation, scan, step update, and exports.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Recurrent state versus KV-cache}
+\label{ch:state-vs-cache}
+KV cache and recurrent state are both generation state but have different semantics.
+
+
+
+\begin{intuitionbox}{Intuition}
+The type of state determines the equivalence law.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+KV cache equivalence compares full attention recomputation with cached decode; recurrent equivalence compares scan with repeated step updates.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Use separate tagged state variants.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Interface design for heterogeneous layers}
+\label{ch:heterogeneous-layers}
+Heterogeneous layers require an interface that declares parameters, state kind, prefill behaviour, decode behaviour, and validation exports.
+
+
+
+\begin{intuitionbox}{Intuition}
+Heterogeneity should be explicit, not hidden in a switch statement.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+A layer maps \((x,state)\) to \((y,state')\) and may expose diagnostics.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Keep forward, state allocation, state clear, and profiling labels narrow.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}
+
+\chapter{Validation for hybrid models}
+\label{ch:hybrid-validation}
+Hybrid validation extends transformer validation with state-update checks.
+
+
+
+\begin{intuitionbox}{Intuition}
+Each new state semantics needs its own equivalence law.
+\end{intuitionbox}
+
+\begin{definitionbox}{Mathematical or contract statement}
+Validate component outputs, full logits, recurrent scan equivalence, attention cache equivalence, and greedy ids.
+\end{definitionbox}
+
+\begin{implementationbox}{Implementation interpretation}
+Start with tiny synthetic configs and generated vectors.
+\end{implementationbox}
+
+\begin{verificationbox}{How to verify this works}
+\begin{itemize}
+\item Check shapes and dtypes at the boundary.
+\item Compare deterministic outputs against PyTorch golden vectors.
+\item Record tolerance, seed, model artifact, and backend.
+\item Do not benchmark until validation passes.
+\end{itemize}
+\end{verificationbox}
+
+\begin{warningbox}{Common failure modes}
+\begin{itemize}
+\item Letting framework defaults choose dtype or layout.
+\item Testing only a batch size of one.
+\item Depending on upstream checkpoint names in runtime code.
+\item Treating benchmark output as validation.
+\end{itemize}
+\end{warningbox}
+
+\begin{chapterexercises}
+\item State the central invariant in one sentence.\\
+\textit{Hint.} Use the conceptual guide vocabulary.
+\item Construct a toy example with small shapes.\\
+\textit{Hint.} Use $B=2$, $T=3$, $H=8$ where possible.
+\item Name a validation test that would catch a plausible bug.\\
+\textit{Hint.} Prefer generated golden vectors to handwritten long arrays.
+\end{chapterexercises}

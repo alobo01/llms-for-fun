@@ -1,0 +1,20 @@
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[node distance=7mm,>=Latex]
+\tikzstyle{phase}=[rounded rectangle,draw=EngineBlue!80,fill=EngineBlue!6,minimum width=24mm,minimum height=9mm,align=center,font=\small]
+\node[phase] (p0) {Phase 0\\GPT-2\\CPU correctness};
+\node[phase,right=of p0] (p1) {Phase 1\\LLaMA-style};
+\node[phase,right=of p1] (p2) {Phase 2\\MQA};
+\node[phase,right=of p2] (p3) {Phase 3\\GQA + sliding};
+\node[phase,below=of p2] (p4) {Phase 4\\modern dense};
+\node[phase,left=of p4] (p5) {Phase 5\\hybrid};
+\draw[->,thick,EngineBlue] (p0)--(p1);
+\draw[->,thick,EngineBlue] (p1)--(p2);
+\draw[->,thick,EngineBlue] (p2)--(p3);
+\draw[->,thick,EngineBlue] (p3.south)--++(0,-5mm)-|(p4.east);
+\draw[->,thick,EngineBlue] (p4)--(p5);
+\end{tikzpicture}
+}
+\caption{Repository roadmap: correctness-first GPT-2, then modern transformer and hybrid phases.}
+\end{figure}
