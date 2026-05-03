@@ -1,3 +1,10 @@
+venv/
+artifacts/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
 # LaTeX build temporaries
 *.aux
 *.bbl
